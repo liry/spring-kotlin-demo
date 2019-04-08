@@ -1,23 +1,22 @@
 package cz.liry.springkotlindemo
 
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.context.support.beans
 import org.springframework.jdbc.core.JdbcOperations
 import org.springframework.jdbc.core.queryForObject
-import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RestController
 
 @SpringBootApplication
 class SpringKotlinDemoApplication
 
 fun main(args: Array<String>) {
-//    runApplication<SpringKotlinDemoApplication>(*args)
-
     SpringApplicationBuilder()
             .sources(SpringKotlinDemoApplication::class.java)
             .initializers(beans {
@@ -35,15 +34,15 @@ fun main(args: Array<String>) {
             .run(*args)
 }
 
-@Component
-class SampleDataInitializer : ApplicationRunner {
+@RestController
+class CustomerRestController(private val customerService: CustomerService) {
 
-    @Autowired
-    var customerService: CustomerService? = null
+    @GetMapping("/customers")
+    fun customers() = customerService.all()
 
-    override fun run(args: ApplicationArguments?) {
-        customerService?.insert(Customer("tester"))
-        customerService?.all()?.forEach { println(it) }
+    @PostMapping("/customers")
+    fun addCustomer(@RequestBody customer: Customer) {
+        customerService.insert(customer)
     }
 }
 
