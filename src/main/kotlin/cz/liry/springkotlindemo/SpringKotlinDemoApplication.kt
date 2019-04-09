@@ -35,6 +35,7 @@ fun main(args: Array<String>) {
 }
 
 @RestController
+@org.springframework.web.bind.annotation.CrossOrigin("*")
 class CustomerRestController(private val customerService: CustomerService) {
 
     @GetMapping("/customers")
