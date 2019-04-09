@@ -4,14 +4,12 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.context.support.beans
-import org.springframework.jdbc.core.JdbcOperations
-import org.springframework.jdbc.core.queryForObject
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.data.repository.CrudRepository
+import org.springframework.stereotype.Repository
+import org.springframework.web.bind.annotation.*
+import javax.persistence.Entity
+import javax.persistence.GeneratedValue
+import javax.persistence.Id
 
 @SpringBootApplication
 class SpringKotlinDemoApplication
@@ -22,52 +20,32 @@ fun main(args: Array<String>) {
             .initializers(beans {
                 bean {
                     ApplicationRunner {
-                        val customerService = ref<CustomerService>()
+                        val repository = ref<CustomerRepository>()
                         arrayOf("Jirka", "Martin", "Libor")
                                 .map { Customer(name = it) }
-                                .forEach { customerService.insert(it) }
-                        customerService.all().forEach { println(it) }
+                                .forEach { repository.save(it) }
+                        repository.findAll().forEach { println(it) }
                     }
                 }
-
             })
             .run(*args)
 }
 
 @RestController
-@org.springframework.web.bind.annotation.CrossOrigin("*")
-class CustomerRestController(private val customerService: CustomerService) {
+@CrossOrigin("*")
+class CustomerRestController(private val repository: CustomerRepository) {
 
     @GetMapping("/customers")
-    fun customers() = customerService.all()
+    fun customers() = repository.findAll()
 
     @PostMapping("/customers")
     fun addCustomer(@RequestBody customer: Customer) {
-        customerService.insert(customer)
+        repository.save(customer)
     }
 }
 
-@Service
-@Transactional
-class JdbcCustomerService(private val jdbc: JdbcOperations) : CustomerService {
-    override fun all(): Collection<Customer> = jdbc.query("select * from customers") { rs, _ -> Customer(rs.getString("name"), rs.getLong("id")) }
+@Repository
+interface CustomerRepository : CrudRepository<Customer, Long>
 
-    override fun byId(id: Long): Customer? =
-            jdbc.queryForObject("select * from customer where id = ?", id) { rs, _ -> Customer(rs.getString("name"), rs.getLong("id")) }
-
-    override fun insert(c: Customer) {
-        this.jdbc.execute("insert into customers(name) values (?)") {
-            it.setString(1, c.name)
-            it.execute()
-        }
-    }
-
-}
-
-interface CustomerService {
-    fun all(): Collection<Customer>
-    fun byId(id: Long): Customer?
-    fun insert(c: Customer)
-}
-
-data class Customer(val name: String, var id: Long? = null)
+@Entity
+data class Customer(val name: String, @Id @GeneratedValue var id: Long? = null)
